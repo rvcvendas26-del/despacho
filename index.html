@@ -63,7 +63,7 @@ const F=Html5QrcodeSupportedFormats;
 const leitor=new Html5Qrcode('reader',{formatsToSupport:[F.CODE_128,F.CODE_39,F.CODE_93,F.EAN_13,F.EAN_8,F.ITF,F.UPC_A,F.QR_CODE],experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
 function ligar(){
   $('iniciar').style.display='none';
-  leitor.start({facingMode:'environment'},{fps:15,qrbox:(w,h)=>({width:Math.floor(w*0.9),height:Math.max(60,Math.floor(Math.min(w,h)*0.22))}),aspectRatio:1.333,disableFlip:true},lido,()=>{})
+  leitor.start({facingMode:'environment'},{fps:15,qrbox:(w,h)=>({width:Math.floor(w*0.88),height:Math.max(70,Math.floor(w*0.3))}),aspectRatio:0.5625,disableFlip:true},lido,()=>{})
     .catch(()=>{ msg('Libere a câmera para o Safari e toque em "Ligar câmera".','bad'); $('iniciar').style.display='block'; });
 }
 $('iniciar').onclick=ligar;
