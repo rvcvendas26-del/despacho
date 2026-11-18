@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Leitor Despacho Krates</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#0b0f0e;color:#fff;padding:env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 12px)}
+  h1{font-size:19px;margin:12px 0 8px;display:flex;justify-content:space-between;align-items:center}
+  h1 b{font-size:26px;color:#4ade80}
+  #reader{width:100%;border-radius:14px;overflow:hidden;background:#000}
+  #reader video{border-radius:14px}
+  #msg{margin:10px 0;padding:12px;border-radius:12px;background:#1f2937;font-weight:800;font-size:16px;text-align:center;min-height:46px}
+  #msg.ok{background:#16a34a}#msg.rep{background:#ca8a04}#msg.bad{background:#dc2626}
+  ul{list-style:none;padding:0;margin:0 0 12px}
+  li{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #1f2937;font-size:16px;font-family:ui-monospace,monospace}
+  li button{background:none;border:0;color:#f87171;font-size:20px}
+  .btn{display:block;width:100%;padding:16px;border:0;border-radius:14px;font-size:18px;font-weight:900;margin-top:8px}
+  #enviar{background:#16a34a;color:#fff}#enviar:disabled{opacity:.4}
+  #limpar{background:#1f2937;color:#fff}
+  #iniciar{background:#16a34a;color:#fff}
+  small{color:#9ca3af;display:block;margin-top:10px;font-size:12px}
+</style>
+</head>
+<body>
+<h1>🚚 Leitor do despacho <b id="cont">0</b></h1>
+<div id="reader"></div>
+<button class="btn" id="iniciar" style="display:none">📷 Ligar câmera</button>
+<div id="msg">Aponte a câmera para o código de barras da etiqueta</div>
+<ul id="lista"></ul>
+<button class="btn" id="enviar" disabled>✅ Enviar para o painel</button>
+<button class="btn" id="limpar">Limpar lista</button>
+<small>Bipe todos os pacotes e toque em "Enviar para o painel". O painel confere cada pedido sozinho.</small>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const PAINEL='https://claude.ai/artifact/4Nj3o1GCo7X14Q2PK3FyJB';
+let cods=[]; try{ cods=JSON.parse(localStorage.getItem('krCods')||'[]'); }catch(e){}
+let ultimo='', ultimoT=0, ctx=null;
+const $=id=>document.getElementById(id);
+function salvar(){ try{ localStorage.setItem('krCods',JSON.stringify(cods)); }catch(e){} }
+function msg(t,c){ const m=$('msg'); m.textContent=t; m.className=c||''; }
+function bip(ok){ try{ ctx=ctx||new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=ok?1500:300; g.gain.value=.25; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+(ok?.12:.35)); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(ok?80:[80,60,80]); }catch(e){} }
+function desenhar(){
+  $('cont').textContent=cods.length;
+  $('lista').innerHTML=cods.map((c,i)=>'<li><span>'+(i+1)+'. '+c+'</span><button data-i="'+i+'">✕</button></li>').reverse().join('');
+  $('enviar').disabled=!cods.length; $('enviar').textContent='✅ Enviar para o painel'+(cods.length?' ('+cods.length+')':'');
+}
+$('lista').onclick=e=>{ const i=e.target.dataset.i; if(i!==undefined){ cods.splice(+i,1); salvar(); desenhar(); } };
+function lido(txt){
+  const c=String(txt||'').trim().replace(/\s+/g,'');
+  const agora=Date.now(); if(c===ultimo && agora-ultimoT<2500) return; ultimo=c; ultimoT=agora;
+  if(!/^[A-Za-z0-9]{6,40}$/.test(c)){ msg('Esse código não é de etiqueta. Mire no código de barras.','bad'); bip(false); return; }
+  if(cods.includes(c)){ msg('⚠️ Já bipado: '+c,'rep'); bip(false); return; }
+  cods.push(c); salvar(); desenhar(); msg('✅ '+c,'ok'); bip(true);
+}
+$('enviar').onclick=()=>{ if(!cods.length) return; const h='scan-'+Date.now()+'-'+cods.join('-'); cods=[]; salvar(); desenhar(); location.href=PAINEL+'#'+h; };
+$('limpar').onclick=()=>{ cods=[]; salvar(); desenhar(); msg('Lista limpa. Pode bipar.'); };
+
+const F=Html5QrcodeSupportedFormats;
+const leitor=new Html5Qrcode('reader',{formatsToSupport:[F.CODE_128,F.CODE_39,F.CODE_93,F.EAN_13,F.EAN_8,F.ITF,F.UPC_A,F.QR_CODE],experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
+function ligar(){
+  $('iniciar').style.display='none';
+  leitor.start({facingMode:'environment'},{fps:15,qrbox:(w,h)=>({width:Math.floor(w*0.9),height:Math.max(60,Math.floor(Math.min(w,h)*0.22))}),aspectRatio:1.333,disableFlip:true},lido,()=>{})
+    .catch(()=>{ msg('Libere a câmera para o Safari e toque em "Ligar câmera".','bad'); $('iniciar').style.display='block'; });
+}
+$('iniciar').onclick=ligar;
+desenhar(); ligar();
+</script>
+</body>
+</html>
