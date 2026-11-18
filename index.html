@@ -38,6 +38,7 @@
 <div id="card"></div>
 <div id="reader"></div>
 <div id="resumo"></div>
+<button class="btn" id="somAviso" style="background:#f59e0b;color:#111">🔊 Toque aqui para ativar o bip</button>
 <button class="btn" id="iniciar" style="display:none">📷 Ligar câmera</button>
 <div id="msg">Aponte a câmera para o código de barras da etiqueta</div>
 <ul id="lista"></ul>
@@ -48,6 +49,10 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
+function somCtx(){ ctx=ctx||new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state!=='running') ctx.resume(); return ctx; }
+try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+let somOk=false; function liberarSom(){ if(somOk) return; try{ const c=somCtx(); const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); somOk=true; const a=$('somAviso'); if(a) a.remove(); bipLeitura(); }catch(e){} }
+document.addEventListener('touchend',liberarSom,{passive:true}); document.addEventListener('click',liberarSom);
 const PAINEL='https://claude.ai/artifact/4Nj3o1GCo7X14Q2PK3FyJB';
 let cods=[]; try{ cods=JSON.parse(localStorage.getItem('krCods')||'[]'); }catch(e){}
 let ultimo='', ultimoT=0, ctx=null, cardT=0;
@@ -86,8 +91,8 @@ function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo 
   r.innerHTML='🚚 Hoje: <b>'+feitos.length+' de '+deHoje.length+'</b> conferidos'+(deHoje.length-feitos.length?' · faltam <b>'+(deHoje.length-feitos.length)+'</b>':' 🎉')+'<br><span style="color:#9ca3af;font-size:12px">Lista do painel de '+hhmm(D.t)+'</span>'; }
 function salvar(){ try{ localStorage.setItem('krCods',JSON.stringify(cods)); }catch(e){} }
 function msg(t,c){ const m=$('msg'); m.textContent=t; m.className=c||''; }
-function bipLeitura(){ try{ ctx=ctx||new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='square'; o.frequency.value=2600; g.gain.value=.12; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+.08); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(40); }catch(e){} }
-function bip(ok){ try{ ctx=ctx||new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=ok?1500:300; g.gain.value=.25; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+(ok?.12:.35)); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(ok?80:[80,60,80]); }catch(e){} }
+function bipLeitura(){ try{ ctx=somCtx(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='square'; o.frequency.value=2600; g.gain.value=.35; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+.08); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(40); }catch(e){} }
+function bip(ok){ try{ ctx=somCtx(); const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=ok?1500:300; g.gain.value=.25; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+(ok?.12:.35)); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(ok?80:[80,60,80]); }catch(e){} }
 function desenhar(){
   $('cont').textContent=cods.length;
   const cor={ok:'#16a34a',ant:'#ea580c',fut:'#2563eb',atr:'#dc2626',rep:'#ca8a04',nao:'#4b5563'}, rot={ok:'hoje',ant:'amanhã',fut:'depois',atr:'atrasado',rep:'já conferido',nao:'não achado'};
