@@ -22,7 +22,11 @@
   #limpar{background:#1f2937;color:#fff}
   #iniciar{background:#16a34a;color:#fff}
   #card{display:none;position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:50;padding:18px;border-radius:18px;font-size:20px;font-weight:900;line-height:1.3;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-  #card small{color:#fff;opacity:.9;font-size:15px;font-weight:700;margin-top:6px}
+  #card .bts{display:flex;gap:8px;margin-top:12px}
+  #card .bts button{flex:1;padding:16px 8px;border:0;border-radius:12px;font-size:18px;font-weight:900}
+  #card .bc{background:rgba(255,255,255,.95);color:#111}
+  #card .bl{background:#052e16;color:#fff;border:2px solid #fff!important}
+  #card small{display:block;color:#fff;opacity:.9;font-size:15px;font-weight:700;margin-top:6px}
   .c-ok{background:#16a34a}.c-ant{background:#ea580c}.c-fut{background:#2563eb}.c-atr{background:#dc2626}.c-rep{background:#ca8a04}.c-nao{background:#4b5563}
   #resumo{margin:8px 0 0;padding:10px 12px;border-radius:12px;background:#111827;font-size:15px;font-weight:700}
   li .tag{font-family:-apple-system,system-ui,sans-serif;font-size:13px;font-weight:800;padding:3px 8px;border-radius:8px;margin-left:6px}
@@ -39,7 +43,7 @@
 <ul id="lista"></ul>
 <button class="btn" id="enviar" disabled>✅ Enviar para o painel</button>
 <button class="btn" id="limpar">Limpar lista</button>
-<small>Bipe todos os pacotes sem sair desta tela. No fim, toque uma vez em "Enviar para o painel".</small>
+<small>A cada etiqueta: 🔍 Só consulta (só vê o status) ou ✅ Lançar (vai para a lista). No fim, toque uma vez em "Enviar para o painel" para subir os lançados.</small>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -68,14 +72,21 @@ function status(cod){
   if(pz===amanha()) return {c:'ant',t:'🟠 Essa é para AMANHÃ ('+dia(pz)+')',s:quem+' · pode antecipar'};
   return {c:'fut',t:'🔵 Essa é para '+dia(pz),s:quem+' · ainda não é hora'};
 }
-function mostrar(st){ const c=$('card'); c.className='c-'+st.c; c.innerHTML=st.t+'<small>'+st.s+'</small>'; c.style.display='block'; clearTimeout(cardT); cardT=setTimeout(()=>c.style.display='none',4000); }
-$('card').onclick=()=>{ $('card').style.display='none'; };
+let ESPERA=null;
+function fecharCard(){ $('card').style.display='none'; ESPERA=null; ultimoT=Date.now(); }
+function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout(cardT);
+  const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr');
+  c.innerHTML=st.t+'<small>'+st.s+'</small>'+(podeLancar?'<div class="bts"><button class="bc" id="bCons">🔍 Só consulta</button><button class="bl" id="bLanc">✅ Lançar</button></div>':'<div class="bts"><button class="bc" id="bOk">OK</button></div>');
+  c.style.display='block'; ESPERA=cod||'x';
+  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('🔍 Consultado: '+cod); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); desenhar(); fecharCard(); msg('✅ Lançado: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); }; }
+  else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
   const h=hoje(), lidos=new Set(cods.map(c=>{ const p=achar(c); return p&&p[0]; }).filter(Boolean));
   const deHoje=D.p.filter(p=>p[3]<=h), feitos=deHoje.filter(p=>p[4]||lidos.has(p[0]));
   r.innerHTML='🚚 Hoje: <b>'+feitos.length+' de '+deHoje.length+'</b> conferidos'+(deHoje.length-feitos.length?' · faltam <b>'+(deHoje.length-feitos.length)+'</b>':' 🎉')+'<br><span style="color:#9ca3af;font-size:12px">Lista do painel de '+hhmm(D.t)+'</span>'; }
 function salvar(){ try{ localStorage.setItem('krCods',JSON.stringify(cods)); }catch(e){} }
 function msg(t,c){ const m=$('msg'); m.textContent=t; m.className=c||''; }
+function bipLeitura(){ try{ ctx=ctx||new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='square'; o.frequency.value=2600; g.gain.value=.12; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+.08); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(40); }catch(e){} }
 function bip(ok){ try{ ctx=ctx||new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=ok?1500:300; g.gain.value=.25; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+(ok?.12:.35)); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(ok?80:[80,60,80]); }catch(e){} }
 function desenhar(){
   $('cont').textContent=cods.length;
@@ -86,12 +97,13 @@ function desenhar(){
 }
 $('lista').onclick=e=>{ const i=e.target.dataset.i; if(i!==undefined){ cods.splice(+i,1); salvar(); desenhar(); } };
 function lido(txt){
+  if(ESPERA) return;
   const c=String(txt||'').trim().replace(/\s+/g,'');
-  const agora=Date.now(); if(c===ultimo && agora-ultimoT<2500) return; ultimo=c; ultimoT=agora;
-  if(!/^[A-Za-z0-9]{6,40}$/.test(c)){ msg('Esse código não é de etiqueta. Mire no código de barras.','bad'); bip(false); return; }
-  if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já bipou essa agora',s:c}); bip(false); return; }
-  const st=status(c); INFO[c]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){}
-  cods.push(c); salvar(); desenhar(); mostrar(st); msg('Última: '+c, st.c==='ok'?'ok':(st.c==='atr'||st.c==='nao')?'bad':'rep'); bip(st.c==='ok'||st.c==='ant'||st.c==='fut');
+  const agora=Date.now(); if(c===ultimo && agora-ultimoT<6000) return; ultimo=c; ultimoT=agora;
+  bipLeitura();
+  if(!/^[A-Za-z0-9]{6,40}$/.test(c)){ msg('Esse código não é de etiqueta. Mire no código de barras.','bad'); return; }
+  if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:(achar(c)||[0,c])[1]}); return; }
+  const st=status(c); setTimeout(()=>bip(st.c==='ok'||st.c==='ant'||st.c==='fut'),150); mostrar(st,c);
 }
 $('enviar').onclick=()=>{ if(!cods.length) return; const h='scan-'+Date.now()+'-'+cods.join('-'); cods=[]; salvar(); desenhar(); location.href=PAINEL+'#'+h; };
 $('limpar').onclick=()=>{ cods=[]; salvar(); desenhar(); msg('Lista limpa. Pode bipar.'); };
