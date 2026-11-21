@@ -49,7 +49,7 @@
 <ul id="lista"></ul>
 <button class="btn" id="enviar" disabled>✅ Enviar para o painel</button>
 <button class="btn" id="limpar">Limpar lista</button>
-<small>A cada etiqueta: 📋 Abrir pedido (vê o que vai dentro) ou ✅ Lançar como FEITO (pedido pronto, ainda não despachado). No fim, toque uma vez em "Enviar para o painel" para subir os feitos. O despacho é baixado sozinho quando a plataforma marcar como enviado.</small>
+<small>A cada etiqueta: 📋 Abrir pedido (vê o que vai dentro) ou ✅ Lançar como FEITO (pedido pronto, ainda não despachado). Cada feito fica salvo na hora e entra no painel sozinho (no máximo em 1 hora; na hora se você tocar em "Abrir o painel"). O despacho é baixado sozinho quando a plataforma marcar como enviado.</small>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -60,6 +60,22 @@ let somOk=false; function liberarSom(){ if(somOk) return; try{ const c=somCtx();
 document.addEventListener('touchend',liberarSom,{passive:true}); document.addEventListener('click',liberarSom);
 const PAINEL='https://claude.ai/artifact/4Nj3o1GCo7X14Q2PK3FyJB';
 let cods=[]; try{ cods=JSON.parse(localStorage.getItem('krCods')||'[]'); }catch(e){}
+/* cada "Lançar como FEITO" vai na hora para o painel (tabela krates_leituras no Supabase); sem internet, fica na fila e tenta de novo */
+const SB_URL='https://fwpqsegxjxmulfvizliq.supabase.co/rest/v1/krates_leituras', SB_KEY='sb_publishable_OTJxKksTbHj8Rlrl0WIWaw_me2BC6wE';
+let FILA=[]; try{ FILA=JSON.parse(localStorage.getItem('krFila')||'[]'); }catch(e){}
+let ENV={}; try{ ENV=JSON.parse(localStorage.getItem('krEnv')||'{}'); }catch(e){}
+try{ const hj=new Date(Date.now()-3*3600e3).toISOString().slice(0,10); if(localStorage.getItem('krDia')!==hj){ cods=cods.filter(c=>FILA.includes(c)); localStorage.setItem('krDia',hj); localStorage.setItem('krCods',JSON.stringify(cods)); } }catch(e){}
+if(!localStorage.getItem('krMig2')){ cods.forEach(c=>{ if(!FILA.includes(c)) FILA.push(c); }); try{ localStorage.setItem('krMig2','1'); }catch(e){} }
+function salvarFila(){ try{ localStorage.setItem('krFila',JSON.stringify(FILA)); localStorage.setItem('krEnv',JSON.stringify(ENV)); }catch(e){} }
+let enviando=false;
+async function enviarFila(){ if(enviando||!FILA.length) return; enviando=true;
+  try{ while(FILA.length){ const c=FILA[0];
+      const r=await fetch(SB_URL,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({cod:c,acao:'feito'})});
+      if(!r.ok) throw new Error('http '+r.status);
+      FILA.shift(); ENV[c]=Date.now(); salvarFila(); desenhar(); } }
+  catch(e){ msg('📶 Sem conexão: '+FILA.length+' na fila, vou reenviar sozinho.','bad'); }
+  finally{ enviando=false; } }
+setInterval(enviarFila,8000); window.addEventListener('online',enviarFila);
 let ultimo='', ultimoT=0, ctx=null, cardT=0;
 let D=null; try{ D=JSON.parse(localStorage.getItem('krDados')||'null'); }catch(e){}
 try{ const m=location.hash.match(/^#d=(.+)$/); if(m){ D=JSON.parse(decodeURIComponent(m[1])); localStorage.setItem('krDados',JSON.stringify(D)); history.replaceState(null,'',location.pathname); } }catch(e){}
@@ -90,8 +106,10 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
   const itens=(temPed&&temPed[6])||[], caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE</div>'+itens.map(x=>'<div class="it">'+esc(x)+'</div>').join('')+'</div>':'';
   c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
-  if(temPed){ $('bPed').onclick=()=>{ fecharCard(); try{ leitor.stop(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(cod); }; }
-  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); desenhar(); fecharCard(); msg('✅ Feito: '+(achar(cod)||[0,cod])[1]+' · toque em Enviar para o painel no fim','ok'); bip(true); }; }
+  if(temPed){ $('bPed').onclick=async()=>{ const b=$('bPed'); b.textContent='Abrindo o pedido…'; b.disabled=true;
+      try{ await Promise.race([fetch(SB_URL,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({cod:cod,acao:'abrir'})}),new Promise(r=>setTimeout(r,4000))]); }catch(e){}
+      fecharCard(); try{ leitor.stop(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(cod); }; }
+  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); if(!FILA.includes(cod)) FILA.push(cod); salvarFila(); desenhar(); fecharCard(); msg('✅ Feito e salvo: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); enviarFila(); }; }
   else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
   const h=hoje(), lidos=new Set(cods.map(c=>{ const p=achar(c); return p&&p[0]; }).filter(Boolean));
@@ -104,9 +122,9 @@ function bip(ok){ try{ ctx=somCtx(); const o=ctx.createOscillator(), g=ctx.creat
 function desenhar(){
   $('cont').textContent=cods.length;
   const cor={ok:'#16a34a',ant:'#ea580c',fut:'#2563eb',atr:'#dc2626',rep:'#ca8a04',nao:'#4b5563'}, rot={ok:'feito · hoje',ant:'feito · amanhã',fut:'feito · depois',atr:'feito · atrasado',rep:'já lançado',nao:'não achado'};
-  $('lista').innerHTML=cods.map((c,i)=>{ const st=INFO[c]||'nao', p=achar(c); return '<li><span>'+(i+1)+'. '+(p?p[1]:c)+'<span class="tag" style="background:'+cor[st]+'">'+rot[st]+'</span></span><button data-i="'+i+'">✕</button></li>'; }).reverse().join('');
+  $('lista').innerHTML=cods.map((c,i)=>{ const st=INFO[c]||'nao', p=achar(c); const ok=!!ENV[c]&&!FILA.includes(c); return '<li><span>'+(i+1)+'. '+(p?p[1]:c)+'<span class="tag" style="background:'+cor[st]+'">'+rot[st]+'</span><span class="tag" style="background:'+(ok?'#16a34a':'#ca8a04')+'">'+(ok?'✓ salvo':'⏳ salvando')+'</span></span><button data-i="'+i+'">✕</button></li>'; }).reverse().join('');
   resumo();
-  $('enviar').disabled=!cods.length; $('enviar').textContent='✅ Enviar feitos para o painel'+(cods.length?' ('+cods.length+')':'');
+  $('enviar').disabled=false; $('enviar').textContent='📋 Abrir o painel'+(cods.length?' ('+cods.length+' feitos hoje)':'');
 }
 $('lista').onclick=e=>{ const i=e.target.dataset.i; if(i!==undefined){ cods.splice(+i,1); salvar(); desenhar(); } };
 function lido(txt){
@@ -120,8 +138,8 @@ function lido(txt){
   if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:(achar(c)||[0,c])[1]}); return; }
   const st=status(c); setTimeout(()=>bip(st.c==='ok'||st.c==='ant'||st.c==='fut'),150); mostrar(st,c);
 }
-$('enviar').onclick=()=>{ if(!cods.length) return; const h='scan-'+Date.now()+'-'+cods.join('-'); cods=[]; salvar(); desenhar(); location.href=PAINEL+'#'+h; };
-$('limpar').onclick=()=>{ cods=[]; salvar(); desenhar(); msg('Lista limpa. Pode bipar.'); };
+$('enviar').onclick=()=>{ enviarFila(); location.href=PAINEL+(cods.length?'#scan-'+Date.now()+'-'+cods.join('-'):''); };
+$('limpar').onclick=()=>{ cods=cods.filter(c=>FILA.includes(c)); salvar(); desenhar(); msg('Lista limpa (o que já subiu continua no painel). Pode ler.'); };
 
 const F=Html5QrcodeSupportedFormats;
 const leitor=new Html5Qrcode('reader',{formatsToSupport:[F.CODE_128,F.CODE_39,F.CODE_93,F.EAN_13,F.EAN_8,F.ITF,F.UPC_A,F.QR_CODE],experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
@@ -131,7 +149,7 @@ function ligar(){
     .catch(()=>{ msg('Libere a câmera para o Safari e toque em "Ligar câmera".','bad'); $('iniciar').style.display='block'; });
 }
 $('iniciar').onclick=ligar;
-desenhar(); ligar();
+desenhar(); ligar(); enviarFila();
 </script>
 </body>
 </html>
