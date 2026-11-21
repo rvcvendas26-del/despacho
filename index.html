@@ -29,6 +29,16 @@
   #card .it-t{font-size:12px;font-weight:900;color:#64748b;letter-spacing:.04em;margin-bottom:4px}
   #card .it{font-size:19px;font-weight:800;line-height:1.35;padding:5px 0;border-top:1px solid #e5e7eb}
   #card .it:first-of-type{border-top:0}
+  #card .it2{padding:10px 0;border-top:2px solid #e5e7eb}
+  #card .it-t+.it2{border-top:0;padding-top:4px}
+  #card .it2 .l1{display:flex;align-items:baseline;gap:8px;line-height:1.15}
+  #card .it2 .qt{font-size:34px;font-weight:900;color:#dc2626}
+  #card .it2 .nm{font-size:22px;font-weight:900;color:#111}
+  #card .it2 .l2{display:flex;gap:10px;align-items:stretch;margin-top:8px;flex-wrap:wrap}
+  #card .it2 .cor{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;padding:10px 12px;border-radius:12px;font-size:22px;font-weight:900;border:3px solid #111;text-transform:uppercase}
+  #card .it2 .tam{min-width:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 12px;border-radius:12px;background:#111;color:#fff;font-size:34px;font-weight:900;line-height:1}
+  #card .it2 .tam small{font-size:11px;letter-spacing:.1em;color:#d1d5db;margin:2px 0 2px;display:block}
+  #card .it2 .ps{margin-top:8px;padding:8px 12px;border-radius:12px;background:#fef3c7;color:#111;font-size:19px;font-weight:900}
   #card .bp{display:block;width:100%;margin-top:12px;padding:16px;border:0;border-radius:16px;font-size:19px;font-weight:900;background:#fbbf24;color:#111}
   #card .bl{background:#052e16;color:#fff;border:2px solid #fff!important}
   #card small{display:block;color:#fff;opacity:.9;font-size:15px;font-weight:700;margin-top:6px}
@@ -103,7 +113,14 @@ function fecharCard(){ $('card').style.display='none'; ESPERA=null; ultimoT=Date
 function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout(cardT);
   const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr'), temPed=cod&&achar(cod);
   const esc=x=>String(x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-  const itens=(temPed&&temPed[6])||[], caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE</div>'+itens.map(x=>'<div class="it">'+esc(x)+'</div>').join('')+'</div>':'';
+  const escuro=hx=>{ const h=String(hx||'').replace('#',''); if(h.length<6) return false; const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); return (r*299+g*587+b*114)/1000<140; };
+  const bloco=x=>{ if(!Array.isArray(x)) return '<div class="it">'+esc(x)+'</div>';
+    const [q,nome,cor,hx,tam,pers]=x;
+    return '<div class="it2"><div class="l1"><span class="qt">'+esc(q)+'×</span><span class="nm">'+esc(nome)+'</span></div>'+
+      '<div class="l2">'+(cor?'<span class="cor" style="background:'+esc(hx)+';color:'+(escuro(hx)?'#fff':'#111')+'">'+esc(cor)+'</span>':'')+
+      (tam?'<span class="tam"><small>TAM</small>'+esc(tam)+'</span>':'')+'</div>'+
+      (pers?'<div class="ps">📍 '+esc(pers)+'</div>':'')+'</div>'; };
+  const itens=(temPed&&temPed[6])||[], caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE</div>'+itens.map(bloco).join('')+'</div>':'';
   c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
   if(temPed){ $('bPed').onclick=async()=>{ const b=$('bPed'); b.textContent='Abrindo o pedido…'; b.disabled=true;
