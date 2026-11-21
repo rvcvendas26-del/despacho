@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Leitor Despacho Krates</title>
+<title>Ler etiqueta · Krates</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#0b0f0e;color:#fff;padding:env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 12px)}
@@ -35,7 +35,7 @@
 </style>
 </head>
 <body>
-<h1>🚚 Leitor do despacho <b id="cont">0</b></h1>
+<h1>📷 Ler etiqueta <b id="cont">0</b></h1>
 <div id="card"></div>
 <div id="reader"></div>
 <div id="resumo"></div>
@@ -45,7 +45,7 @@
 <ul id="lista"></ul>
 <button class="btn" id="enviar" disabled>✅ Enviar para o painel</button>
 <button class="btn" id="limpar">Limpar lista</button>
-<small>A cada etiqueta: 🔍 Só consulta (só vê o status) ou ✅ Lançar (vai para a lista). No fim, toque uma vez em "Enviar para o painel" para subir os lançados.</small>
+<small>A cada etiqueta: 📋 Abrir pedido (vê o que vai dentro) ou ✅ Lançar como FEITO (pedido pronto, ainda não despachado). No fim, toque uma vez em "Enviar para o painel" para subir os feitos. O despacho é baixado sozinho quando a plataforma marcar como enviado.</small>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -71,36 +71,36 @@ function status(cod){
   if(!D) return {c:'nao',t:'Leitor sem a lista de pedidos',s:'Abra o leitor pelo botão 📷 do painel para ele saber o status de cada etiqueta.'};
   const p=achar(cod); if(!p) return {c:'nao',t:'📦 Marcos, essa etiqueta não está nos pedidos a despachar',s:'Provavelmente já foi postada. Se for pedido novo, atualize o painel.'};
   const [cs,nome,plat,pz,scan,sac]=p, quem=nome+' · '+plat+' #'+sac;
-  if(scan) return {c:'rep',t:'⚠️ Esse já foi conferido às '+hhmm(scan),s:quem+' · despacho '+dia(pz)};
+  if(scan) return {c:'rep',t:'⚠️ Esse já foi lançado como feito às '+hhmm(scan),s:quem+' · despacha '+dia(pz)};
   const h=hoje();
-  if(pz<h) return {c:'atr',t:'⛔ ATRASADO! Era para '+dia(pz)+'. Despache agora!',s:quem};
-  if(pz===h) return {c:'ok',t:'✅ Marcos, é de HOJE! Parabéns, vai no despacho de hoje',s:quem};
-  if(pz===amanha()) return {c:'ant',t:'🟠 Essa é para AMANHÃ ('+dia(pz)+')',s:quem+' · pode antecipar'};
-  return {c:'fut',t:'🔵 Essa é para '+dia(pz),s:quem+' · ainda não é hora'};
+  if(pz<h) return {c:'atr',t:'⛔ ATRASADO! Era para '+dia(pz)+'. Faça e despache agora!',s:quem};
+  if(pz===h) return {c:'ok',t:'🔥 Despacha HOJE',s:quem};
+  if(pz===amanha()) return {c:'ant',t:'🟠 Despacha AMANHÃ ('+dia(pz)+')',s:quem};
+  return {c:'fut',t:'🔵 Despacha '+dia(pz),s:quem};
 }
 let ESPERA=null;
 function fecharCard(){ $('card').style.display='none'; ESPERA=null; ultimoT=Date.now(); }
 function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout(cardT);
   const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr'), temPed=cod&&achar(cod);
-  c.innerHTML=st.t+'<small>'+st.s+'</small>'+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido (marcar o que já fiz)</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">🔍 Só consulta</button><button class="bl" id="bLanc">✅ Lançar</button></div>':'<div class="bts"><button class="bc" id="bOk">OK</button></div>');
+  c.innerHTML=st.t+'<small>'+st.s+'</small>'+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
   if(temPed){ $('bPed').onclick=()=>{ fecharCard(); try{ leitor.stop(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(cod); }; }
-  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('🔍 Consultado: '+cod); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); desenhar(); fecharCard(); msg('✅ Lançado: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); }; }
+  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); desenhar(); fecharCard(); msg('✅ Feito: '+(achar(cod)||[0,cod])[1]+' · toque em Enviar para o painel no fim','ok'); bip(true); }; }
   else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
   const h=hoje(), lidos=new Set(cods.map(c=>{ const p=achar(c); return p&&p[0]; }).filter(Boolean));
   const deHoje=D.p.filter(p=>p[3]<=h), feitos=deHoje.filter(p=>p[4]||lidos.has(p[0]));
-  r.innerHTML='🚚 Hoje: <b>'+feitos.length+' de '+deHoje.length+'</b> conferidos'+(deHoje.length-feitos.length?' · faltam <b>'+(deHoje.length-feitos.length)+'</b>':' 🎉')+'<br><span style="color:#9ca3af;font-size:12px">Lista do painel de '+hhmm(D.t)+'</span>'; }
+  r.innerHTML='🔥 Despacham hoje: <b>'+feitos.length+' de '+deHoje.length+'</b> feitos'+(deHoje.length-feitos.length?' · faltam <b>'+(deHoje.length-feitos.length)+'</b>':' 🎉')+'<br><span style="color:#9ca3af;font-size:12px">Lista do painel de '+hhmm(D.t)+'</span>'; }
 function salvar(){ try{ localStorage.setItem('krCods',JSON.stringify(cods)); }catch(e){} }
 function msg(t,c){ const m=$('msg'); m.textContent=t; m.className=c||''; }
 function bipLeitura(){ try{ ctx=somCtx(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='square'; o.frequency.value=2600; g.gain.value=.35; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+.08); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(40); }catch(e){} }
 function bip(ok){ try{ ctx=somCtx(); const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=ok?1500:300; g.gain.value=.25; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+(ok?.12:.35)); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(ok?80:[80,60,80]); }catch(e){} }
 function desenhar(){
   $('cont').textContent=cods.length;
-  const cor={ok:'#16a34a',ant:'#ea580c',fut:'#2563eb',atr:'#dc2626',rep:'#ca8a04',nao:'#4b5563'}, rot={ok:'hoje',ant:'amanhã',fut:'depois',atr:'atrasado',rep:'já conferido',nao:'não achado'};
+  const cor={ok:'#16a34a',ant:'#ea580c',fut:'#2563eb',atr:'#dc2626',rep:'#ca8a04',nao:'#4b5563'}, rot={ok:'feito · hoje',ant:'feito · amanhã',fut:'feito · depois',atr:'feito · atrasado',rep:'já lançado',nao:'não achado'};
   $('lista').innerHTML=cods.map((c,i)=>{ const st=INFO[c]||'nao', p=achar(c); return '<li><span>'+(i+1)+'. '+(p?p[1]:c)+'<span class="tag" style="background:'+cor[st]+'">'+rot[st]+'</span></span><button data-i="'+i+'">✕</button></li>'; }).reverse().join('');
   resumo();
-  $('enviar').disabled=!cods.length; $('enviar').textContent='✅ Enviar para o painel'+(cods.length?' ('+cods.length+')':'');
+  $('enviar').disabled=!cods.length; $('enviar').textContent='✅ Enviar feitos para o painel'+(cods.length?' ('+cods.length+')':'');
 }
 $('lista').onclick=e=>{ const i=e.target.dataset.i; if(i!==undefined){ cods.splice(+i,1); salvar(); desenhar(); } };
 function lido(txt){
