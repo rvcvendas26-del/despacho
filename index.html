@@ -25,6 +25,7 @@
   #card .bts{display:flex;gap:8px;margin-top:12px}
   #card .bts button{flex:1;padding:16px 8px;border:0;border-radius:12px;font-size:18px;font-weight:900}
   #card .bc{background:rgba(255,255,255,.95);color:#111}
+  #card .bp{display:block;width:100%;margin-top:12px;padding:16px;border:0;border-radius:16px;font-size:19px;font-weight:900;background:#fbbf24;color:#111}
   #card .bl{background:#052e16;color:#fff;border:2px solid #fff!important}
   #card small{display:block;color:#fff;opacity:.9;font-size:15px;font-weight:700;margin-top:6px}
   .c-ok{background:#16a34a}.c-ant{background:#ea580c}.c-fut{background:#2563eb}.c-atr{background:#dc2626}.c-rep{background:#ca8a04}.c-nao{background:#4b5563}
@@ -80,9 +81,10 @@ function status(cod){
 let ESPERA=null;
 function fecharCard(){ $('card').style.display='none'; ESPERA=null; ultimoT=Date.now(); }
 function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout(cardT);
-  const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr');
-  c.innerHTML=st.t+'<small>'+st.s+'</small>'+(podeLancar?'<div class="bts"><button class="bc" id="bCons">🔍 Só consulta</button><button class="bl" id="bLanc">✅ Lançar</button></div>':'<div class="bts"><button class="bc" id="bOk">OK</button></div>');
+  const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr'), temPed=cod&&achar(cod);
+  c.innerHTML=st.t+'<small>'+st.s+'</small>'+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido (marcar o que já fiz)</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">🔍 Só consulta</button><button class="bl" id="bLanc">✅ Lançar</button></div>':'<div class="bts"><button class="bc" id="bOk">OK</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
+  if(temPed){ $('bPed').onclick=()=>{ fecharCard(); try{ leitor.stop(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(cod); }; }
   if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('🔍 Consultado: '+cod); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); desenhar(); fecharCard(); msg('✅ Lançado: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); }; }
   else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
