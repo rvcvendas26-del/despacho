@@ -21,10 +21,14 @@
   #enviar{background:#16a34a;color:#fff}#enviar:disabled{opacity:.4}
   #limpar{background:#1f2937;color:#fff}
   #iniciar{background:#16a34a;color:#fff}
-  #card{display:none;position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:50;padding:18px;border-radius:18px;font-size:20px;font-weight:900;line-height:1.3;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  #card{display:none;position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:50;padding:18px;border-radius:18px;font-size:20px;font-weight:900;line-height:1.3;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:calc(100vh - 30px);overflow-y:auto}
   #card .bts{display:flex;gap:8px;margin-top:12px}
   #card .bts button{flex:1;padding:16px 8px;border:0;border-radius:12px;font-size:18px;font-weight:900}
   #card .bc{background:rgba(255,255,255,.95);color:#111}
+  #card .itens{margin-top:12px;padding:12px 14px;border-radius:14px;background:#fff;color:#111;text-align:left}
+  #card .it-t{font-size:12px;font-weight:900;color:#64748b;letter-spacing:.04em;margin-bottom:4px}
+  #card .it{font-size:19px;font-weight:800;line-height:1.35;padding:5px 0;border-top:1px solid #e5e7eb}
+  #card .it:first-of-type{border-top:0}
   #card .bp{display:block;width:100%;margin-top:12px;padding:16px;border:0;border-radius:16px;font-size:19px;font-weight:900;background:#fbbf24;color:#111}
   #card .bl{background:#052e16;color:#fff;border:2px solid #fff!important}
   #card small{display:block;color:#fff;opacity:.9;font-size:15px;font-weight:700;margin-top:6px}
@@ -82,7 +86,9 @@ let ESPERA=null;
 function fecharCard(){ $('card').style.display='none'; ESPERA=null; ultimoT=Date.now(); }
 function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout(cardT);
   const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr'), temPed=cod&&achar(cod);
-  c.innerHTML=st.t+'<small>'+st.s+'</small>'+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
+  const esc=x=>String(x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const itens=(temPed&&temPed[6])||[], caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE</div>'+itens.map(x=>'<div class="it">'+esc(x)+'</div>').join('')+'</div>':'';
+  c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
   if(temPed){ $('bPed').onclick=()=>{ fecharCard(); try{ leitor.stop(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(cod); }; }
   if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); desenhar(); fecharCard(); msg('✅ Feito: '+(achar(cod)||[0,cod])[1]+' · toque em Enviar para o painel no fim','ok'); bip(true); }; }
