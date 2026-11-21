@@ -30,6 +30,15 @@
   #card .it{font-size:19px;font-weight:800;line-height:1.35;padding:5px 0;border-top:1px solid #e5e7eb}
   #card .it:first-of-type{border-top:0}
   #card .it2{padding:10px 0;border-top:2px solid #e5e7eb}
+  #card .det{margin-top:10px;padding:10px 14px;border-radius:14px;background:#fff;color:#111}
+  #card .dl{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #e5e7eb;font-size:16px}
+  #card .dl:first-child{border-top:0}
+  #card .dl span{color:#64748b;font-weight:800}
+  #card .dl b{text-align:right;font-weight:900}
+  #card .dobs{margin-top:8px;padding:8px 10px;border-radius:10px;background:#fef3c7;font-size:16px;font-weight:800}
+  #card .dart{margin-top:8px}
+  #card .dart small{display:block;font-size:11px;color:#64748b;font-weight:900;letter-spacing:.06em;margin-bottom:4px}
+  #card .dart img{width:100%;max-height:260px;object-fit:contain;border-radius:10px;background:#f1f5f9}
   #card .it-t+.it2{border-top:0;padding-top:4px}
   #card .it2 .l1{display:flex;align-items:baseline;gap:8px;line-height:1.15}
   #card .it2 .qt{font-size:34px;font-weight:900;color:#dc2626}
@@ -109,6 +118,12 @@ function status(cod){
   return {c:'fut',t:'🔵 Despacha '+dia(pz),s:quem};
 }
 let ESPERA=null;
+function detalhesHTML(p){ const e=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const d=p[7]||{}, lin=(r,v)=>v?'<div class="dl"><span>'+r+'</span><b>'+e(v)+'</b></div>':'';
+  const dt=d.dt?String(d.dt).slice(8,10)+'/'+String(d.dt).slice(5,7):'';
+  return '<div class="det">'+lin('Cliente',d.cli||p[1])+lin('Plataforma',(p[2]||'')+' · #'+(p[5]||''))+lin('Nº do pedido',d.ped)+lin('Venda',dt)+lin('Despacha',dia(p[3]))+
+    lin('Peças',d.pecas)+lin('Status',d.st)+lin('Etiqueta',d.etq)+(d.obs?'<div class="dobs">📝 '+e(d.obs)+'</div>':'')+
+    (d.arte?'<div class="dart"><small>ARTE APROVADA</small><img src="'+e(d.arte)+'" alt="Arte" referrerpolicy="no-referrer"></div>':'')+'</div>'; }
 function fecharCard(){ $('card').style.display='none'; ESPERA=null; ultimoT=Date.now(); }
 function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout(cardT);
   const podeLancar=cod&&(st.c==='ok'||st.c==='ant'||st.c==='fut'||st.c==='atr'), temPed=cod&&achar(cod);
@@ -121,11 +136,9 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
       (tam?'<span class="tam"><small>TAM</small>'+esc(tam)+'</span>':'')+'</div>'+
       (pers?'<div class="ps">📍 '+esc(pers)+'</div>':'')+'</div>'; };
   const itens=(temPed&&temPed[6])||[], caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE</div>'+itens.map(bloco).join('')+'</div>':'';
-  c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">📋 Abrir pedido</button>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
+  c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">🔎 Ver pedido completo</button><div id="detPed" style="display:none"></div>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
-  if(temPed){ $('bPed').onclick=async()=>{ const b=$('bPed'); b.textContent='Abrindo o pedido…'; b.disabled=true;
-      try{ await Promise.race([fetch(SB_URL,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({cod:cod,acao:'abrir'})}),new Promise(r=>setTimeout(r,4000))]); }catch(e){}
-      fecharCard(); try{ leitor.stop(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(cod); }; }
+  if(temPed){ $('bPed').onclick=()=>{ const d=$('detPed'), b=$('bPed'); if(d.style.display==='none'){ d.innerHTML=detalhesHTML(temPed); d.style.display='block'; b.textContent='🔼 Esconder detalhes'; } else { d.style.display='none'; b.textContent='🔎 Ver pedido completo'; } }; }
   if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); if(!FILA.includes(cod)) FILA.push(cod); salvarFila(); desenhar(); fecharCard(); msg('✅ Feito e salvo: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); enviarFila(); }; }
   else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
