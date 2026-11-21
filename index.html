@@ -105,10 +105,12 @@ function desenhar(){
 $('lista').onclick=e=>{ const i=e.target.dataset.i; if(i!==undefined){ cods.splice(+i,1); salvar(); desenhar(); } };
 function lido(txt){
   if(ESPERA) return;
-  const c=String(txt||'').trim().replace(/\s+/g,'');
+  let c=String(txt||'').trim().replace(/\s+/g,'');
   const agora=Date.now(); if(c===ultimo && agora-ultimoT<6000) return; ultimo=c; ultimoT=agora;
   bipLeitura();
-  if(!/^[A-Za-z0-9]{6,40}$/.test(c)){ msg('Esse código não é de etiqueta. Mire no código de barras.','bad'); return; }
+  /* QR Code da etiqueta traz um texto maior (com o número do envio dentro): usa o código do pedido que estiver nele */
+  if(!/^[A-Za-z0-9]{6,40}$/.test(c)){ const p=achar(c); if(p){ const cs=String(p[0]).split('.').filter(Boolean), n=norm(c); c=cs.find(x=>x.length>=8&&n.includes(x))||cs[0]; }
+    else { msg('Não reconheci esse código. Tente o código de barras da etiqueta.','bad'); return; } }
   if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:(achar(c)||[0,c])[1]}); return; }
   const st=status(c); setTimeout(()=>bip(st.c==='ok'||st.c==='ant'||st.c==='fut'),150); mostrar(st,c);
 }
