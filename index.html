@@ -131,14 +131,21 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
   const escuro=hx=>{ const h=String(hx||'').replace('#',''); if(h.length<6) return false; const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); return (r*299+g*587+b*114)/1000<140; };
   const bloco=x=>{ if(!Array.isArray(x)) return '<div class="it">'+esc(x)+'</div>';
     const [q,nome,cor,hx,tam,pers]=x;
-    return '<div class="it2"><div class="l1"><span class="qt">'+esc(q)+'×</span><span class="nm">'+esc(nome)+'</span></div>'+
+    return '<div class="it2 chk" data-q="'+esc(q)+'" data-n="0" style="cursor:pointer;position:relative"><div class="cf" style="position:absolute;top:8px;right:10px;font-weight:900;font-size:18px">☐ 0/'+esc(q)+'</div><div class="l1"><span class="qt">'+esc(q)+'×</span><span class="nm">'+esc(nome)+'</span></div>'+
       '<div class="l2">'+(cor?'<span class="cor" style="background:'+esc(hx)+';color:'+(escuro(hx)?'#fff':'#111')+'">'+esc(cor)+'</span>':'')+
       (tam?'<span class="tam"><small>TAM</small>'+esc(tam)+'</span>':'')+'</div>'+
       (pers?'<div class="ps">📍 '+esc(pers)+'</div>':'')+'</div>'; };
-  const itens=(temPed&&temPed[6])||[], caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE</div>'+itens.map(bloco).join('')+'</div>':'';
-  c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">🔎 Ver pedido completo</button><div id="detPed" style="display:none"></div>':'')+(podeLancar?'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc">✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
+  const itens=(temPed&&temPed[6])||[], totQ=itens.reduce((a,x)=>a+(Array.isArray(x)?(+x[0]||0):0),0), caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE · toque em cada peça ao colocar no pacote</div>'+itens.map(bloco).join('')+'</div>':'';
+  c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">🔎 Ver pedido completo</button><div id="detPed" style="display:none"></div>':'')+(podeLancar?(totQ?'<div id="cfMsg" style="margin:10px 0 0;padding:10px;border-radius:10px;background:#fef3c7;color:#92400e;font-weight:900;text-align:center">Conferir: 0 de '+totQ+' peças no pacote</div>':'')+'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc"'+(totQ?' disabled style="opacity:.45"':'')+'>✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   c.style.display='block'; ESPERA=cod||'x';
   if(temPed){ $('bPed').onclick=()=>{ const d=$('detPed'), b=$('bPed'); if(d.style.display==='none'){ d.innerHTML=detalhesHTML(temPed); d.style.display='block'; b.textContent='🔼 Esconder detalhes'; } else { d.style.display='none'; b.textContent='🔎 Ver pedido completo'; } }; }
+  /* conferência peça por peça: só libera "Lançar como FEITO" quando todas as peças foram tocadas */
+  const atual=()=>[...c.querySelectorAll('.chk')].reduce((a,e)=>a+(+e.dataset.n||0),0);
+  c.querySelectorAll('.chk').forEach(e=>{ e.onclick=()=>{ const q=+e.dataset.q||1; let n=(+e.dataset.n||0)+1; if(n>q) n=0; e.dataset.n=n; const ok=n>=q;
+      e.querySelector('.cf').textContent=(ok?'☑ ':'☐ ')+n+'/'+q; e.style.outline=ok?'4px solid #16a34a':n?'4px solid #f59e0b':''; e.style.opacity=ok?'.75':'1'; try{ bipLeitura(); }catch(_){}
+      const tq=c.querySelectorAll('.chk').length?[...c.querySelectorAll('.chk')].reduce((a,x)=>a+(+x.dataset.q||0),0):0, at=atual(), m=$('cfMsg'), bl=$('bLanc');
+      if(m){ m.textContent=at>=tq?'✅ Conferido: '+tq+' de '+tq+' peças no pacote':'Conferir: '+at+' de '+tq+' peças no pacote'; m.style.background=at>=tq?'#dcfce7':'#fef3c7'; m.style.color=at>=tq?'#166534':'#92400e'; }
+      if(bl){ const lib=at>=tq; bl.disabled=!lib; bl.style.opacity=lib?'1':'.45'; } }; });
   if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); if(!FILA.includes(cod)) FILA.push(cod); salvarFila(); desenhar(); fecharCard(); msg('✅ Feito e salvo: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); enviarFila(); }; }
   else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
