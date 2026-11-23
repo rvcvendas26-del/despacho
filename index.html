@@ -47,6 +47,9 @@
   #card .it2 .cor{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;padding:10px 12px;border-radius:12px;font-size:22px;font-weight:900;border:3px solid #111;text-transform:uppercase}
   #card .it2 .tam{min-width:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 12px;border-radius:12px;background:#111;color:#fff;font-size:34px;font-weight:900;line-height:1}
   #card .it2 .tam small{font-size:11px;letter-spacing:.1em;color:#d1d5db;margin:2px 0 2px;display:block}
+  #card .it2 .fp{margin-top:8px;height:150px;border-radius:12px;background:radial-gradient(circle at 50% 35%,#fff,#e2e8f0);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:zoom-in}
+  #card .it2 .fp img{width:100%;height:100%;object-fit:contain!important;background:transparent!important}
+  #card .it2 .fp svg{height:140px;width:auto}
   #card .it2 .ps{margin-top:8px;padding:8px 12px;border-radius:12px;background:#fef3c7;color:#111;font-size:19px;font-weight:900}
   #card .bp{display:block;width:100%;margin-top:12px;padding:16px;border:0;border-radius:16px;font-size:19px;font-weight:900;background:#fbbf24;color:#111}
   #card .bl{background:#052e16;color:#fff;border:2px solid #fff!important}
@@ -130,9 +133,9 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
   const esc=x=>String(x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const escuro=hx=>{ const h=String(hx||'').replace('#',''); if(h.length<6) return false; const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); return (r*299+g*587+b*114)/1000<140; };
   const bloco=x=>{ if(!Array.isArray(x)) return '<div class="it">'+esc(x)+'</div>';
-    const [q,nome,cor,hx,tam,pers]=x;
+    const [q,nome,cor,hx,tam,pers,fx]=x, fh=(D&&D.f&&fx>=0)?D.f[fx]:'';
     return '<div class="it2 chk" data-q="'+esc(q)+'" data-n="0" style="cursor:pointer;position:relative"><div class="cf" style="position:absolute;top:8px;right:10px;font-weight:900;font-size:18px">☐ 0/'+esc(q)+'</div><div class="l1"><span class="qt">'+esc(q)+'×</span><span class="nm">'+esc(nome)+'</span></div>'+
-      '<div class="l2">'+(cor?'<span class="cor" style="background:'+esc(hx)+';color:'+(escuro(hx)?'#fff':'#111')+'">'+esc(cor)+'</span>':'')+
+      (fh?'<div class="fp">'+fh+'</div>':'')+'<div class="l2">'+(cor?'<span class="cor" style="background:'+esc(hx)+';color:'+(escuro(hx)?'#fff':'#111')+'">'+esc(cor)+'</span>':'')+
       (tam?'<span class="tam"><small>TAM</small>'+esc(tam)+'</span>':'')+'</div>'+
       (pers?'<div class="ps">📍 '+esc(pers)+'</div>':'')+'</div>'; };
   const itens=(temPed&&temPed[6])||[], totQ=itens.reduce((a,x)=>a+(Array.isArray(x)?(+x[0]||0):0),0), caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE · toque em cada peça ao colocar no pacote</div>'+itens.map(bloco).join('')+'</div>':'';
@@ -141,6 +144,7 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
   if(temPed){ $('bPed').onclick=()=>{ const d=$('detPed'), b=$('bPed'); if(d.style.display==='none'){ d.innerHTML=detalhesHTML(temPed); d.style.display='block'; b.textContent='🔼 Esconder detalhes'; } else { d.style.display='none'; b.textContent='🔎 Ver pedido completo'; } }; }
   /* conferência peça por peça: só libera "Lançar como FEITO" quando todas as peças foram tocadas */
   const atual=()=>[...c.querySelectorAll('.chk')].reduce((a,e)=>a+(+e.dataset.n||0),0);
+  c.querySelectorAll('.fp').forEach(f=>{ f.onclick=ev=>{ ev.stopPropagation(); const o=document.createElement('div'); o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99;display:flex;align-items:center;justify-content:center;padding:16px'; o.innerHTML='<div style="width:100%;max-width:520px;aspect-ratio:1;background:#fff;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center">'+f.innerHTML+'</div>'; const im=o.querySelector('img'); if(im) im.style.objectFit='contain'; const sv=o.querySelector('svg'); if(sv){ sv.style.width='90%'; sv.style.height='90%'; } o.onclick=()=>o.remove(); document.body.appendChild(o); }; });
   c.querySelectorAll('.chk').forEach(e=>{ e.onclick=()=>{ const q=+e.dataset.q||1; let n=(+e.dataset.n||0)+1; if(n>q) n=0; e.dataset.n=n; const ok=n>=q;
       e.querySelector('.cf').textContent=(ok?'☑ ':'☐ ')+n+'/'+q; e.style.outline=ok?'4px solid #16a34a':n?'4px solid #f59e0b':''; e.style.opacity=ok?'.75':'1'; try{ bipLeitura(); }catch(_){}
       const tq=c.querySelectorAll('.chk').length?[...c.querySelectorAll('.chk')].reduce((a,x)=>a+(+x.dataset.q||0),0):0, at=atual(), m=$('cfMsg'), bl=$('bLanc');
