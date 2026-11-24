@@ -159,7 +159,7 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
         mostrar(status(c0),c0); }; }); };
     $('bNome').oninput=e=>lista(e.target.value); }
   c.style.display='block'; ESPERA=cod||'x';
-  if(temPed){ $('bPed').onclick=()=>{ const n=(temPed[7]&&temPed[7].ped)||cod; try{ enviarFila(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(n); }; }
+  if(temPed){ $('bPed').onclick=()=>{ const n=String(temPed[0]||'').split('.').filter(Boolean)[0]||cod; try{ enviarFila(); }catch(e){} location.href=PAINEL+'#ped-'+encodeURIComponent(n); }; }
   /* conferência peça por peça: só libera "Lançar como FEITO" quando todas as peças foram tocadas */
   const atual=()=>[...c.querySelectorAll('.chk')].reduce((a,e)=>a+(+e.dataset.n||0),0);
   c.querySelectorAll('.fp').forEach(f=>{ f.onclick=ev=>{ ev.stopPropagation(); const o=document.createElement('div'); o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99;display:flex;align-items:center;justify-content:center;padding:16px'; o.innerHTML='<div style="width:100%;max-width:520px;aspect-ratio:1;background:#fff;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center">'+f.innerHTML+'</div>'; const im=o.querySelector('img'); if(im) im.style.objectFit='contain'; const sv=o.querySelector('svg'); if(sv){ sv.style.width='90%'; sv.style.height='90%'; } o.onclick=()=>o.remove(); document.body.appendChild(o); }; });
