@@ -16,7 +16,7 @@ Toalha de ${tipo} em veludo, macia e com acabamento sofisticado, com bordado per
 
 COMO PERSONALIZAR
 1. Escolha a cor da toalha e finalize a compra.
-2. Envie pelo chat ${pers} que vai ser bordado.
+2. Envie pelo chat ${pers}.
 3. Bordamos e enviamos em até 2 dias úteis.
 Se não recebermos a personalização em 1 dia útil, a toalha é enviada sem bordado.
 
@@ -35,4 +35,17 @@ window.setDesc=async(txt)=>{const th=[...document.querySelectorAll('th')].find(t
 const ta=[...document.querySelectorAll('.ant-modal textarea')].find(t=>t.getBoundingClientRect().width>0);if(!ta)return 'nodesc';setv(ta,txt);await W(300);[...document.querySelectorAll('.ant-modal button')].find(b=>b.innerText.trim()=='Confirmar'&&b.getBoundingClientRect().width>0).click();await W(1000);return 'ok'};
 window.setPrice=async(p)=>{const rows=[...document.querySelectorAll('tr')].filter(r=>/Plano 1/.test(r.innerText)&&r.querySelector('.ant-input-number-input'));for(const r of rows){const i=r.querySelector('.ant-input-number-input');i.focus();setv(i,p);await W(150);i.blur();await W(150)}return rows.map(r=>r.querySelector('.ant-input-number-input').value).join(',')};
 window.CC={'Rosa':'ROSA','Azul-escuro':'AZUL','Preto':'PRETO','Branco':'BRANCO','Off White':'OFF'};
+window.PAT_A={Rosa:['05','01','07','02','08','09'],'Azul-escuro':['06','01','07','02','08','09'],Preto:['04','01','07','02','08','09'],Branco:['01','02','07','08','09'],'Off White':['03','01','07','02','08','09']};
+window.PAT_B={Rosa:['03','01','06','07','08','09'],'Azul-escuro':['04','01','06','07','08','09'],Preto:['05','01','06','07','08','09'],Branco:['01','07','06','08','09'],'Off White':['02','01','06','07','08','09']};
+window.PAT_L={Rosa:['03','01','06','07','08','09','10'],'Azul-claro':['04','01','06','07','08','09','10'],Preto:['05','01','06','07','08','09','10'],Branco:['01','08','06','07','09','10'],'Off White':['02','01','06','07','08','09','10']};
+window.doImgs=async(slug,pat)=>{const B='https://rvcvendas26-del.github.io/despacho/ref/anuncios/'+slug+'/';const log=[];
+for(let i=0;i<5;i++){let g=groupName(i);if(!g){await W(1500);g=groupName(i)}if(!g){log.push('nogroup'+i);continue}
+const c=await clearGroup(i);const r=await addImgs(i,pat[g].map(n=>B+n+'.jpg'));log.push(g+':'+c+'/'+r)}
+window.__imglog=log.join(' ');return __imglog};
+window.imgState=()=>[...document.querySelectorAll('.variant_row')].map(r=>r.innerText.trim().split('\n').pop()+':'+r.querySelectorAll('img').length+':'+[...r.querySelectorAll('img')].slice(0,1).map(i=>i.src.split('/').slice(-2).join('/'))).join(' | ');
+window.finish=async(title,desc,modelo,comp,larg)=>{const out=[];setv(row('Nome da Família').querySelector('input'),title);out.push(await setDesc(desc));
+const ma=[...document.querySelectorAll('div,span,a')].find(e=>e.childElementCount<=1&&/^Mais Atributos/.test((e.innerText||'').trim()));if(ma){ma.click();await W(1200)}
+const m=attrRow('Modelo');if(m){setv(m.querySelector('input'),modelo)}if(comp){setv(attrRow('Comprimento').querySelector('input'),comp);setv(attrRow('Largura').querySelector('input'),larg)}await W(500);
+out.push(row('Nome da Família').querySelector('input').value,attrRow('Modelo')&&attrRow('Modelo').querySelector('input').value,attrRow('Comprimento')&&attrRow('Comprimento').querySelector('input').value);return out.join(' | ')};
+window.clickBtn=async(t)=>{[...document.querySelectorAll('button')].find(b=>b.innerText.trim()==t).click();await W(5000);return [...document.querySelectorAll('.ant-message,.ant-modal-wrap,.has-error')].filter(e=>e.getBoundingClientRect().width>0).map(e=>e.innerText.trim().slice(0,500)).join(' || ')};
 'lib ok'
