@@ -7,8 +7,8 @@ window.addImgs=async(i,urls)=>{const b=imgBtns()[i];b.scrollIntoView({block:'cen
 const it=[...document.querySelectorAll('li,div,span,a')].filter(e=>e.innerText&&e.innerText.trim()=='A Partir de Web (Link)'&&e.getBoundingClientRect().width>0&&e.childElementCount==0);if(!it.length)return 'nomenu';it[it.length-1].click();await W(900);
 const ta=[...document.querySelectorAll('.ant-modal textarea')].find(t=>t.getBoundingClientRect().width>0);if(!ta)return 'nota';setv(ta,urls.join('\n'));await W(300);
 [...document.querySelectorAll('.ant-modal button')].find(b=>b.innerText.trim()=='Adicionar'&&b.getBoundingClientRect().width>0).click();await W(6000);return 'ok'};
-window.clearGroup=async(i)=>{for(let n=0;n<15;n++){const row=document.querySelectorAll('.variant_row')[i];const e=row&&row.querySelector('.edit_btn .action_btn');if(!e)return n;e.scrollIntoView({block:'center'});['mouseenter','mouseover','click'].forEach(t=>e.dispatchEvent(new MouseEvent(t,{bubbles:true})));await W(600);
-const x=[...document.querySelectorAll('.ant-dropdown li,.ant-dropdown-menu-item')].filter(x=>x.getBoundingClientRect().width>0&&x.innerText.trim()=='Excluir').pop();if(!x)return 'nox'+n;x.click();await W(600);}return 'max'};
+window.clearGroup=async(i)=>{let n=0;for(let k=0;k<30;k++){document.body.click();await W(300);const row=document.querySelectorAll('.variant_row')[i];const e=row&&row.querySelector('.edit_btn .action_btn');if(!e)return n;e.scrollIntoView({block:'center'});await W(200);['mouseenter','mouseover','click'].forEach(t=>e.dispatchEvent(new MouseEvent(t,{bubbles:true})));await W(900);
+const x=[...document.querySelectorAll('.ant-dropdown li,.ant-dropdown-menu-item')].filter(x=>x.getBoundingClientRect().width>0&&x.innerText.trim()=='Excluir').pop();if(!x)continue;x.click();n++;await W(700);}return 'max'+n};
 window.groupName=i=>{const r=document.querySelectorAll('.variant_row')[i];return r?r.innerText.trim().split('\n').pop().trim():null};
 window.mkDesc=(tipo,pers,tam,extra)=>`TOALHA DE ${tipo.toUpperCase()} BORDADA E PERSONALIZADA
 
