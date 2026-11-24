@@ -1,0 +1,6 @@
+window.RAWB='https://raw.githubusercontent.com/rvcvendas26-del/despacho/d9176b2dd60464a7fb87d9452e1e3a4eedbcaf64/ref/anuncios/';
+window.getVIM=()=>{let el=document.querySelector('.variant_row');for(let k=0;k<8&&el;k++){if(el.__vue__&&el.__vue__.$options.name==='VariantsImgModule')return el.__vue__;el=el.parentElement}};
+window.setVarImgs=(slug,pat,base)=>{const vm=getVIM();const t=JSON.parse(JSON.stringify(vm.selfVariantsList));const o=[];for(const v of t){const p=pat[v.attrStr];if(!p){o.push(v.attrStr+':NOPAT');continue}v.imgList=p.map(n=>({url:(base||RAWB)+slug+'/'+n+'.jpg',imgErrorTip:'',isMercadoDiagnosticErrorUrl:'',publishErrorTip:false}));o.push(v.attrStr+':'+p.join(','))}vm.selfVariantsList=t;return o.join(' | ')};
+window.upd=async()=>{const b=[...document.querySelectorAll('button')].filter(vis).find(b=>b.innerText.trim()=='Atualizar');b.click();let m='';for(let i=0;i<26;i++){await W(1500);m=[...document.querySelectorAll('.ant-modal-wrap,.ant-message-notice')].filter(vis).map(e=>e.innerText.trim().replace(/\n+/g,' ')).join(' || ');if(/100%|rro/.test(m))break}return m};
+window.updWait=async()=>{let m='';for(let i=0;i<26;i++){await W(1500);m=[...document.querySelectorAll('.ant-modal-wrap,.ant-message-notice')].filter(vis).map(e=>e.innerText.trim().replace(/\n+/g,' ')).join(' || ');if(/100%|rro/.test(m))break}return m};
+'lib2 ok';
