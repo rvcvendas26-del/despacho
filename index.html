@@ -121,10 +121,10 @@ function status(cod){
   if(!D) return {c:'nao',t:'Leitor sem a lista de pedidos',s:'Abra o leitor pelo botão 📷 do painel para ele saber o status de cada etiqueta.'};
   const p=achar(cod); if(!p){ const ec=String(cod).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
     return {c:'nao',t:'❓ Marcos, não reconheci esse código',s:'Código lido: <b style="font-family:ui-monospace,monospace">'+ec+'</b><br>Pode ter sido outro código da etiqueta (ex.: da nota) ou uma leitura errada. Leia o código de barras principal da etiqueta ou busque o pedido pelo nome do cliente:'}; }
-  const [cs,nome,plat,pz,scan,sac]=p, quem=nome+' · '+plat+' #'+sac, em=lancadoEm(p), stp=String((p[7]||{}).st||'');
+  const [cs,nome,plat,pz,scan,sac]=p; let quem=nome+' · '+plat+' #'+sac, em=lancadoEm(p), stp=String((p[7]||{}).st||'');
   if(em) return {c:'rep',t:'✅ Pedido PRONTO · lançado como feito '+quando(em),s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
-  if(/feito|embalado/.test(stp)) return {c:'rep',t:'✅ Pedido PRONTO · já está como feito no painel',s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
-  const h=hoje();
+  if(/embalado/.test(stp)) return {c:'rep',t:'✅ Pedido PRONTO · já está como embalado no painel',s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
+  const h=hoje(); if(/feito/.test(stp)) quem+=' · 🧵 produção concluída, falta lançar como FEITO';
   if(pz<h) return {c:'atr',t:'⛔ ATRASADO! Era para '+dia(pz)+'. Faça e despache agora!',s:quem};
   if(pz===h) return {c:'ok',t:'🔥 Despacha HOJE',s:quem};
   if(pz===amanha()) return {c:'ant',t:'🟠 Despacha AMANHÃ ('+dia(pz)+')',s:quem};
