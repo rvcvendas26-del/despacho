@@ -114,7 +114,7 @@ function status(cod){
   const p=achar(cod); if(!p){ const ec=String(cod).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
     return {c:'nao',t:'❓ Marcos, não reconheci esse código',s:'Código lido: <b style="font-family:ui-monospace,monospace">'+ec+'</b><br>Pode ter sido outro código da etiqueta (ex.: da nota) ou uma leitura errada. Leia o código de barras principal da etiqueta ou busque o pedido pelo nome do cliente:'}; }
   const [cs,nome,plat,pz,scan,sac]=p, quem=nome+' · '+plat+' #'+sac;
-  if(scan) return {c:'rep',t:'⚠️ Esse já foi lançado como feito às '+hhmm(scan),s:quem+' · despacha '+dia(pz)};
+  if(scan) return {c:'rep',t:'⚠️ Esse já foi lançado como feito às '+hhmm(scan),s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
   const h=hoje();
   if(pz<h) return {c:'atr',t:'⛔ ATRASADO! Era para '+dia(pz)+'. Faça e despache agora!',s:quem};
   if(pz===h) return {c:'ok',t:'🔥 Despacha HOJE',s:quem};
@@ -139,7 +139,7 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
       (fh?'<div class="fp">'+fh+'</div>':'')+'<div class="l2">'+(cor?'<span class="cor" style="background:'+esc(hx)+';color:'+(escuro(hx)?'#fff':'#111')+'">'+esc(cor)+'</span>':'')+
       (tam?'<span class="tam"><small>TAM</small>'+esc(tam)+'</span>':'')+'</div>'+
       (pers?'<div class="ps">📍 '+esc(pers)+'</div>':'')+'</div>'; };
-  const itens=(temPed&&temPed[6])||[], totQ=itens.reduce((a,x)=>a+(Array.isArray(x)?(+x[0]||0):0),0), caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE · toque em cada peça ao colocar no pacote</div>'+itens.map(bloco).join('')+'</div>':'';
+  const itens=(temPed&&temPed[6])||[], totQ=itens.reduce((a,x)=>a+(Array.isArray(x)?(+x[0]||0):0),0), caixa=itens.length?'<div class="itens"><div class="it-t">📦 VAI DENTRO DO PACOTE · '+(st.c==='rep'?'conferência: toque em cada peça que está no pacote':'toque em cada peça ao colocar no pacote')+'</div>'+itens.map(bloco).join('')+'</div>':'';
   c.innerHTML=st.t+'<small>'+st.s+'</small>'+caixa+(temPed?'<button class="bp" id="bPed">🔎 Ver pedido completo</button><div id="detPed" style="display:none"></div>':'')+(podeLancar?(totQ?'<div id="cfMsg" style="margin:10px 0 0;padding:10px;border-radius:10px;background:#fef3c7;color:#92400e;font-weight:900;text-align:center">Conferir: 0 de '+totQ+' peças no pacote</div>':'')+'<div class="bts"><button class="bc" id="bCons">✕ Fechar</button><button class="bl" id="bLanc"'+(totQ?' disabled style="opacity:.45"':'')+'>✅ Lançar como FEITO</button></div>':'<div class="bts"><button class="bc" id="bOk">✕ Fechar</button></div>');
   if(st.c==='nao'&&D&&D.p){ const bx=document.createElement('div'); bx.innerHTML='<input id="bNome" placeholder="Nome do cliente" autocomplete="off" style="width:100%;margin-top:12px;padding:14px;border-radius:12px;border:0;font-size:18px;font-weight:800"><div id="bRes"></div>';
     c.insertBefore(bx,c.querySelector('.bts'));
@@ -147,7 +147,7 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
     const lista=q=>{ const t=semAc(q).trim(), r=t.length<2?[]:D.p.filter(p=>semAc(p[1]+' '+(p[7]&&p[7].cli||'')+' '+p[5]).includes(t)).slice(0,6);
       $('bRes').innerHTML=r.map((p,i)=>'<button data-k="'+i+'" style="display:block;width:100%;margin-top:8px;padding:14px;border:0;border-radius:12px;background:#fff;color:#111;font-size:17px;font-weight:900;text-align:left">'+esc(p[1])+' · '+esc(p[2])+' · despacha '+esc(dia(p[3]))+(p[4]?' · ✅ feito':'')+'</button>').join('')||(t.length>=2?'<div style="margin-top:8px;font-size:15px">Nenhum pedido com esse nome.</div>':'');
       $('bRes').querySelectorAll('button').forEach(b=>{ b.onclick=()=>{ const p=r[+b.dataset.k], c0=String(p[0]).split('.').filter(Boolean)[0]; fecharCard();
-        if(cods.some(x=>achar(x)===p)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:esc(p[1])}); return; } mostrar(status(c0),c0); }; }); };
+        if(cods.some(x=>achar(x)===p)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:esc(p[1])+' · confira as peças abaixo'},c0); return; } mostrar(status(c0),c0); }; }); };
     $('bNome').oninput=e=>lista(e.target.value); }
   c.style.display='block'; ESPERA=cod||'x';
   if(temPed){ $('bPed').onclick=()=>{ const d=$('detPed'), b=$('bPed'); if(d.style.display==='none'){ d.innerHTML=detalhesHTML(temPed); d.style.display='block'; b.textContent='🔼 Esconder detalhes'; } else { d.style.display='none'; b.textContent='🔎 Ver pedido completo'; } }; }
@@ -189,7 +189,7 @@ function lido(txt){
   /* QR Code da etiqueta traz um texto maior (com o número do envio dentro): usa o código do pedido que estiver nele */
   if(!/^[A-Za-z0-9]{8,40}$/.test(c)){ const p=achar(c); if(p){ const cs=String(p[0]).split('.').filter(Boolean), n=norm(c); c=cs.find(x=>x.length>=8&&n.includes(x))||cs[0]; }
     else { msg('Não reconheci esse código. Tente o código de barras da etiqueta.','bad'); return; } }
-  if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:(achar(c)||[0,c])[1]}); return; }
+  if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:(achar(c)||[0,c])[1]+' · confira as peças abaixo'},c); return; }
   const st=status(c); setTimeout(()=>bip(st.c==='ok'||st.c==='ant'||st.c==='fut'),150); mostrar(st,c);
 }
 $('enviar').onclick=()=>{ enviarFila(); location.href=PAINEL+(cods.length?'#scan-'+Date.now()+'-'+cods.join('-'):''); };
