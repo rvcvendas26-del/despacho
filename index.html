@@ -86,6 +86,9 @@ let cods=[]; try{ cods=JSON.parse(localStorage.getItem('krCods')||'[]'); }catch(
 const SB_URL='https://fwpqsegxjxmulfvizliq.supabase.co/rest/v1/krates_leituras', SB_KEY='sb_publishable_OTJxKksTbHj8Rlrl0WIWaw_me2BC6wE';
 let FILA=[]; try{ FILA=JSON.parse(localStorage.getItem('krFila')||'[]'); }catch(e){}
 let ENV={}; try{ ENV=JSON.parse(localStorage.getItem('krEnv')||'{}'); }catch(e){}
+/* quando cada etiqueta foi lançada como FEITO neste celular (guarda 30 dias) */
+let HIST={}; try{ HIST=JSON.parse(localStorage.getItem('krHist')||'{}'); }catch(e){}
+try{ Object.keys(ENV).forEach(c=>{ if(!HIST[c]) HIST[c]=ENV[c]; }); const lim=Date.now()-30*864e5; Object.keys(HIST).forEach(c=>{ if(HIST[c]<lim) delete HIST[c]; }); localStorage.setItem('krHist',JSON.stringify(HIST)); }catch(e){}
 try{ const hj=new Date(Date.now()-3*3600e3).toISOString().slice(0,10); if(localStorage.getItem('krDia')!==hj){ cods=cods.filter(c=>FILA.includes(c)); localStorage.setItem('krDia',hj); localStorage.setItem('krCods',JSON.stringify(cods)); } }catch(e){}
 if(!localStorage.getItem('krMig2')){ cods.forEach(c=>{ if(!FILA.includes(c)) FILA.push(c); }); try{ localStorage.setItem('krMig2','1'); }catch(e){} }
 function salvarFila(){ try{ localStorage.setItem('krFila',JSON.stringify(FILA)); localStorage.setItem('krEnv',JSON.stringify(ENV)); }catch(e){} }
@@ -108,13 +111,19 @@ const amanha=()=>new Date(Date.now()-3*3600e3+864e5).toISOString().slice(0,10);
 const SEM=['dom','seg','ter','qua','qui','sex','sáb'];
 const dia=iso=>{ if(!iso||iso>'9990') return 'sem data'; const d=new Date(iso+'T12:00:00'); return SEM[d.getDay()]+' '+iso.slice(8,10)+'/'+iso.slice(5,7); };
 const hhmm=t=>new Date(t-3*3600e3).toISOString().slice(11,16);
+const quando=t=>{ const d=new Date(t-3*3600e3).toISOString().slice(0,10), ont=new Date(Date.now()-3*3600e3-864e5).toISOString().slice(0,10);
+  return (d===hoje()?'hoje':d===ont?'ONTEM':dia(d))+' às '+hhmm(t); };
+/* hora em que o pedido foi lançado como feito: painel (p[4]) ou este celular (HIST), a mais antiga */
+function lancadoEm(p){ const cs=String(p[0]).split('.').filter(Boolean); let t=+p[4]||0;
+  Object.keys(HIST).forEach(c=>{ const n=norm(c); if(cs.some(x=>x===n||(x.length>=8&&(n.includes(x)||x.includes(n))))) t=t?Math.min(t,HIST[c]):HIST[c]; }); return t; }
 function achar(cod){ if(!D||!D.p) return null; const c=norm(cod); for(const p of D.p){ const cs=String(p[0]).split('.').filter(Boolean); if(cs.some(x=>x===c||(x.length>=8&&(c.includes(x)||x.includes(c))))) return p; } return null; }
 function status(cod){
   if(!D) return {c:'nao',t:'Leitor sem a lista de pedidos',s:'Abra o leitor pelo botão 📷 do painel para ele saber o status de cada etiqueta.'};
   const p=achar(cod); if(!p){ const ec=String(cod).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
     return {c:'nao',t:'❓ Marcos, não reconheci esse código',s:'Código lido: <b style="font-family:ui-monospace,monospace">'+ec+'</b><br>Pode ter sido outro código da etiqueta (ex.: da nota) ou uma leitura errada. Leia o código de barras principal da etiqueta ou busque o pedido pelo nome do cliente:'}; }
-  const [cs,nome,plat,pz,scan,sac]=p, quem=nome+' · '+plat+' #'+sac;
-  if(scan) return {c:'rep',t:'⚠️ Esse já foi lançado como feito às '+hhmm(scan),s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
+  const [cs,nome,plat,pz,scan,sac]=p, quem=nome+' · '+plat+' #'+sac, em=lancadoEm(p), stp=String((p[7]||{}).st||'');
+  if(em) return {c:'rep',t:'✅ Pedido PRONTO · lançado como feito '+quando(em),s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
+  if(/feito|embalado/.test(stp)) return {c:'rep',t:'✅ Pedido PRONTO · já está como feito no painel',s:quem+' · despacha '+dia(pz)+' · confira as peças abaixo'};
   const h=hoje();
   if(pz<h) return {c:'atr',t:'⛔ ATRASADO! Era para '+dia(pz)+'. Faça e despache agora!',s:quem};
   if(pz===h) return {c:'ok',t:'🔥 Despacha HOJE',s:quem};
@@ -147,7 +156,7 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
     const lista=q=>{ const t=semAc(q).trim(), r=t.length<2?[]:D.p.filter(p=>semAc(p[1]+' '+(p[7]&&p[7].cli||'')+' '+p[5]).includes(t)).slice(0,6);
       $('bRes').innerHTML=r.map((p,i)=>'<button data-k="'+i+'" style="display:block;width:100%;margin-top:8px;padding:14px;border:0;border-radius:12px;background:#fff;color:#111;font-size:17px;font-weight:900;text-align:left">'+esc(p[1])+' · '+esc(p[2])+' · despacha '+esc(dia(p[3]))+(p[4]?' · ✅ feito':'')+'</button>').join('')||(t.length>=2?'<div style="margin-top:8px;font-size:15px">Nenhum pedido com esse nome.</div>':'');
       $('bRes').querySelectorAll('button').forEach(b=>{ b.onclick=()=>{ const p=r[+b.dataset.k], c0=String(p[0]).split('.').filter(Boolean)[0]; fecharCard();
-        if(cods.some(x=>achar(x)===p)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:esc(p[1])+' · confira as peças abaixo'},c0); return; } mostrar(status(c0),c0); }; }); };
+        mostrar(status(c0),c0); }; }); };
     $('bNome').oninput=e=>lista(e.target.value); }
   c.style.display='block'; ESPERA=cod||'x';
   if(temPed){ $('bPed').onclick=()=>{ const d=$('detPed'), b=$('bPed'); if(d.style.display==='none'){ d.innerHTML=detalhesHTML(temPed); d.style.display='block'; b.textContent='🔼 Esconder detalhes'; } else { d.style.display='none'; b.textContent='🔎 Ver pedido completo'; } }; }
@@ -159,7 +168,7 @@ function mostrar(st,cod){ const c=$('card'); c.className='c-'+st.c; clearTimeout
       const tq=c.querySelectorAll('.chk').length?[...c.querySelectorAll('.chk')].reduce((a,x)=>a+(+x.dataset.q||0),0):0, at=atual(), m=$('cfMsg'), bl=$('bLanc');
       if(m){ m.textContent=at>=tq?'✅ Conferido: '+tq+' de '+tq+' peças no pacote':'Conferir: '+at+' de '+tq+' peças no pacote'; m.style.background=at>=tq?'#dcfce7':'#fef3c7'; m.style.color=at>=tq?'#166534':'#92400e'; }
       if(bl){ const lib=at>=tq; bl.disabled=!lib; bl.style.opacity=lib?'1':'.45'; } }; });
-  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); if(!FILA.includes(cod)) FILA.push(cod); salvarFila(); desenhar(); fecharCard(); msg('✅ Feito e salvo: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); enviarFila(); }; }
+  if(podeLancar){ $('bCons').onclick=()=>{ fecharCard(); msg('Pode ler a próxima etiqueta.'); }; $('bLanc').onclick=()=>{ INFO[cod]=st.c; HIST[cod]=Date.now(); try{ localStorage.setItem('krHist',JSON.stringify(HIST)); }catch(e){} try{ localStorage.setItem('krInfo',JSON.stringify(INFO)); }catch(e){} cods.push(cod); salvar(); if(!FILA.includes(cod)) FILA.push(cod); salvarFila(); desenhar(); fecharCard(); msg('✅ Feito e salvo: '+(achar(cod)||[0,cod])[1],'ok'); bip(true); enviarFila(); }; }
   else { $('bOk').onclick=fecharCard; } }
 function resumo(){ const r=$('resumo'); if(!D){ r.textContent='⚠️ Abra pelo botão 📷 do painel para ver o status dos pedidos.'; return; }
   const h=hoje(), lidos=new Set(cods.map(c=>{ const p=achar(c); return p&&p[0]; }).filter(Boolean));
@@ -189,7 +198,7 @@ function lido(txt){
   /* QR Code da etiqueta traz um texto maior (com o número do envio dentro): usa o código do pedido que estiver nele */
   if(!/^[A-Za-z0-9]{8,40}$/.test(c)){ const p=achar(c); if(p){ const cs=String(p[0]).split('.').filter(Boolean), n=norm(c); c=cs.find(x=>x.length>=8&&n.includes(x))||cs[0]; }
     else { msg('Não reconheci esse código. Tente o código de barras da etiqueta.','bad'); return; } }
-  if(cods.includes(c)){ mostrar({c:'rep',t:'⚠️ Você já lançou essa agora',s:(achar(c)||[0,c])[1]+' · confira as peças abaixo'},c); return; }
+  if(cods.includes(c)){ const p=achar(c), em=(p&&lancadoEm(p))||HIST[c]; mostrar({c:'rep',t:'✅ Pedido PRONTO · lançado como feito '+(em?quando(em):'agora'),s:(p||[0,c])[1]+(p?' · despacha '+dia(p[3]):'')+' · confira as peças abaixo'},c); return; }
   const st=status(c); setTimeout(()=>bip(st.c==='ok'||st.c==='ant'||st.c==='fut'),150); mostrar(st,c);
 }
 $('enviar').onclick=()=>{ enviarFila(); location.href=PAINEL+(cods.length?'#scan-'+Date.now()+'-'+cods.join('-'):''); };
