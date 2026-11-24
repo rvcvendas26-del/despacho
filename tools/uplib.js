@@ -112,4 +112,13 @@ o.push('main:'+await shMainImgs(c.main.map(n=>SB+c.slug+'/'+n+'.jpg')));for(cons
 }catch(e){o.push('ERR '+e)}window.__shlog=o.join(' | ');return __shlog};
 window.SB='https://rvcvendas26-del.github.io/despacho/ref/anuncios/';
 window.SCC={'Branco':'BRANCO','Off white':'OFF','Rosa':'ROSA','Azul Escuro':'AZUL','Preto':'PRETO'};
+
+window.ttDesc=(txt)=>{const ce=fi('Descrição').querySelector('.ck-editor__editable');const ed=ce.ckeditorInstance;const html=txt.split('\n\n').map(p=>'<p>'+p.split('\n').map(x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;')).join('<br>')+'</p>').join('');ed.setData(html);return ed.getData().length};
+window.ttRows=async(pref,cc,qty,price,kg,Wd,L,H,gt)=>{const rows=[...document.querySelectorAll('tr')].filter(r=>r.cells&&r.cells[0]&&cc[r.cells[0].innerText.trim()]&&r.querySelectorAll('input').length>=6);const out=[];
+for(const r of rows){const c=r.cells[0].innerText.trim();const sku=pref+'-'+cc[c];const ins=[...r.querySelectorAll('input')].filter(i=>i.type!='checkbox');
+const vals=[gt[sku]||gt['*']||'',sku,String(qty),price,kg,String(Wd),String(L),String(H)];for(let k=0;k<Math.min(ins.length,8);k++){if(vals[k]===''&&k==0)continue;ins[k].focus();setv(ins[k],vals[k]);ins[k].blur();await W(120)}
+out.push(c+':'+ins.map(i=>i.value).join(','))}return out.join('\n')};
+window.ttCat=async(re)=>{const i=fi('Categoria').querySelector('input');i.scrollIntoView({block:'center'});['mousedown','mouseup','click'].forEach(e=>i.dispatchEvent(new MouseEvent(e,{bubbles:true})));await W(1500);
+const rc=[...document.querySelectorAll('*')].filter(e=>e.childElementCount==0&&vis(e)&&(e.innerText||'').trim()=='Recomendação')[0];if(rc){rc.click();await W(1500)}const o=[...document.querySelectorAll('*')].filter(e=>e.childElementCount==0&&vis(e)&&(e.innerText||'').trim()=='Obter Categoria')[0];if(o){o.click();await W(3500)}
+const opts=[...document.querySelectorAll('li,div')].filter(e=>e.childElementCount==0&&vis(e)&&/>/.test(e.innerText||'')).map(e=>e.innerText.trim());const c=[...document.querySelectorAll('li,div')].filter(e=>e.childElementCount==0&&vis(e)&&re.test((e.innerText||'').trim()))[0];if(!c)return 'nocat: '+opts.slice(0,12).join(' ## ');c.click();await W(3000);const m=[...document.querySelectorAll('.ant-modal-wrap')].find(vis);if(m){const b=[...m.querySelectorAll('button')].find(b=>/Mudar|Confirmar|OK/.test(b.innerText.trim()));if(b)b.click();await W(5000)}return fi('Categoria').querySelector('input').title||fi('Categoria').querySelector('input').value};
 'lib ok'
